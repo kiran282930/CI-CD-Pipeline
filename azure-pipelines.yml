@@ -1,0 +1,34 @@
+trigger:
+- main  # Define the branch to trigger the pipeline (e.g., 'main')
+
+pool:
+  vmImage: 'ubuntu-latest'  # Use an Ubuntu image for the build agent
+
+variables:
+  SF_USERNAME: $(SF_USERNAME)  # Replace with Azure DevOps variable for Salesforce username
+  SF_PASSWORD: $(SF_PASSWORD)  # Replace with Azure DevOps variable for Salesforce password
+  SF_TOKEN: $(SF_TOKEN)  # Replace with Azure DevOps variable for Salesforce security token
+
+steps:
+- task: Checkout@1
+  displayName: 'Checkout Source Code'
+
+- task: SalesforceCLI@1  # Authenticate to Salesforce using the Salesforce CLI
+  inputs:
+    sfdxCommand: 'auth:login'
+    sfdxAuthUrl: $(SFDX_AUTH_URL)  # Salesforce authentication URL, store in DevOps variables
+  displayName: 'Authenticate to Salesforce Org'
+
+- task: SalesforceCLI@1  # Deploy metadata to Salesforce
+  inputs:
+    sfdxCommand: 'force:source:deploy'
+    sfdxAuthUrl: $(SFDX_AUTH_URL)
+    metadata: 'force-app/main/default'  # Path to your Salesforce source code
+  displayName: 'Deploy Salesforce Metadata'
+
+- task: SalesforceCLI@1  # Run Apex tests
+  inputs:
+    sfdxCommand: 'force:apex:test:run'
+    sfdxAuthUrl: $(SFDX_AUTH_URL)
+    wait: 'true'  # Wait for the tests to finish
+  displayName: 'Run Apex Tests'
